@@ -29,41 +29,39 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 5000;
+// Railway menyediakan PORT otomatis.
+// Lokal tetap menggunakan 5000 jika PORT belum tersedia.
+const PORT = Number(process.env.PORT) || 5000;
 
 // ============================================================
 // MIDDLEWARE
 // ============================================================
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
+
 app.use(cors());
+
 app.use(morgan('dev'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+
+app.use(express.json({
+  limit: '10mb'
+}));
+
+app.use(express.urlencoded({
+  extended: true
+}));
 
 // ============================================================
 // ROUTE PUBLIK
 // ============================================================
 
+// Lisensi tidak membutuhkan requireLicense
 app.use('/api/license', licenseRoutes);
+
+// Admin
 app.use('/api/admin', adminRoutes);
-
-// ============================================================
-// ROUTE TERPROTEKSI LISENSI
-// ============================================================
-
-app.use('/api/proyek', requireLicense, proyekRoutes);
-app.use('/api/materials', requireLicense, materialRoutes);
-app.use('/api/upah', requireLicense, upahRoutes);
-app.use('/api/ahsp', requireLicense, ahspRoutes);
-
-app.use('/api/rab', requireLicense, rabEngineRoutes);
-app.use('/api/rab', requireLicense, rabAutoRoutes);
-
-app.use('/api/dashboard', requireLicense, dashboardRoutes);
-app.use('/api/wilayah', requireLicense, wilayahRoutes);
-app.use('/api/laporan', requireLicense, laporanRoutes);
-app.use('/api/pengaturan', requireLicense, pengaturanRoutes);
 
 // ============================================================
 // HEALTH CHECK
@@ -75,6 +73,30 @@ app.get('/api/health', (req, res) => {
     message: 'DWI RAB PRO SNI 2026 API berjalan normal.'
   });
 });
+
+// ============================================================
+// ROUTE TERPROTEKSI LISENSI
+// ============================================================
+
+app.use('/api/proyek', requireLicense, proyekRoutes);
+
+app.use('/api/materials', requireLicense, materialRoutes);
+
+app.use('/api/upah', requireLicense, upahRoutes);
+
+app.use('/api/ahsp', requireLicense, ahspRoutes);
+
+app.use('/api/rab', requireLicense, rabEngineRoutes);
+
+app.use('/api/rab', requireLicense, rabAutoRoutes);
+
+app.use('/api/dashboard', requireLicense, dashboardRoutes);
+
+app.use('/api/wilayah', requireLicense, wilayahRoutes);
+
+app.use('/api/laporan', requireLicense, laporanRoutes);
+
+app.use('/api/pengaturan', requireLicense, pengaturanRoutes);
 
 // ============================================================
 // FRONTEND REACT
@@ -89,8 +111,13 @@ const frontendPath = path.join(
 
 app.use(express.static(frontendPath));
 
-// React Router
+// ============================================================
+// REACT ROUTER FALLBACK
+// ============================================================
+
 app.get('*', (req, res) => {
+
+  // Jangan menganggap API sebagai halaman React
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({
       success: false,
@@ -108,7 +135,8 @@ app.get('*', (req, res) => {
 // ============================================================
 
 app.use((err, req, res, next) => {
-  console.error(err);
+
+  console.error('SERVER ERROR:', err);
 
   res.status(500).json({
     success: false,
@@ -120,14 +148,15 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ============================================================
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
+
   console.log('');
   console.log('==============================================');
-  console.log('🚀 RAB PRO SNI 2026 BERHASIL DIJALANKAN');
+  console.log('🚀 DWI RAB PRO SNI 2026 BERHASIL DIJALANKAN');
   console.log('==============================================');
-  console.log(`🌐 URL     : http://localhost:${PORT}`);
-  console.log(`📡 API     : http://localhost:${PORT}/api`);
-  console.log(`❤️ Health  : http://localhost:${PORT}/api/health`);
+  console.log(`🌐 PORT    : ${PORT}`);
+  console.log(`📡 API     : /api`);
+  console.log(`❤️ Health  : /api/health`);
   console.log('==============================================');
   console.log('');
 });
